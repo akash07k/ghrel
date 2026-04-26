@@ -1,0 +1,60 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Distribution / packaging
+build/
+dist/                           # PyInstaller output (ghrel.exe)
+*.egg-info/
+*.egg
+MANIFEST
+.eggs/
+
+# uv / pip
+.venv/
+venv/
+env/
+.python-version-local
+
+# Tests / coverage
+.pytest_cache/
+.coverage
+.coverage_html/
+.tox/
+htmlcov/
+.hypothesis/
+.mypy_cache/
+.ruff_cache/
+
+# PyInstaller artifacts (build/dist are output; the spec file is hand-crafted
+# and tracked — un-ignore ghrel.spec specifically).
+*.spec
+!ghrel.spec
+build/
+dist/
+
+# Per-run logs (may contain repo URLs and asset names; gitignored to prevent leak)
+logs/
+
+# Downloaded release assets
+downloads/
+
+# Local config (may contain a GitHub PAT)
+config.toml
+
+# IDE / editor noise
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key

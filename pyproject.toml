@@ -1,0 +1,179 @@
+[project]
+name = "ghrel"
+version = "1.0.0"
+description = "Interactive GitHub release downloader with token search, multi-asset selection, integrity verification, and per-run logging."
+readme = "README.md"
+requires-python = ">=3.13"
+license = { text = "AGPL-3.0-or-later" }
+authors = [
+    { name = "Akash Kakkar" },
+]
+keywords = ["github", "releases", "downloader", "cli"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: System :: Archiving",
+    "Topic :: Utilities",
+]
+
+# Lower bounds only — uv will resolve the latest compatible versions on
+# every `uv sync`. Major-version upper bounds are intentionally absent so
+# that minor/patch updates are picked up automatically.
+dependencies = [
+    "PyGithub>=2.7",        # GitHub REST API client
+    "httpx>=0.28",          # sync + async HTTP for asset downloads
+    "typer>=0.16",          # type-hint-driven CLI framework
+    "rich>=14",             # terminal styling, prompts, console
+    "loguru>=0.7.3",        # diag-log sinks with patcher support
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3",
+    "pytest-cov>=6.1",
+    "pytest-mock>=3.14",
+    "pytest-asyncio>=0.25",
+    "respx>=0.22",
+    "hypothesis>=6.122",
+    "ruff>=0.9",
+    "mypy>=1.14",
+    "pyright>=1.1.390",
+    "types-requests",
+]
+
+build = [
+    "pyinstaller>=6.11",
+]
+
+[project.scripts]
+ghrel = "ghrel.cli:app"
+
+[project.urls]
+Homepage = "https://github.com/akash07k/ghrel"
+Issues = "https://github.com/akash07k/ghrel/issues"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ghrel"]
+
+# ── Ruff (lint + format) ──────────────────────────────────────────────────────
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+    "UP",   # pyupgrade
+    "SIM",  # flake8-simplify
+    "RUF",  # ruff-specific
+    "PTH",  # flake8-use-pathlib
+    "S",    # flake8-bandit (security)
+]
+ignore = [
+    "S101",   # assert is fine in tests
+    "E501",   # line length handled by formatter
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101", "S105", "S106"]  # asserts and hardcoded test passwords
+
+# Typer's standard pattern is `def cmd(opt: T = typer.Option(...))`. Bugbear's B008
+# rejects function calls in defaults; this exemption tells it `typer.Option` and
+# `typer.Argument` are safe (they return descriptors, not mutable state).
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["typer.Option", "typer.Argument"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+# ── Mypy (type checking) ──────────────────────────────────────────────────────
+[tool.mypy]
+python_version = "3.13"
+strict = true
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+disallow_untyped_defs = true
+no_implicit_optional = true
+
+[[tool.mypy.overrides]]
+module = ["github.*", "loguru"]
+ignore_missing_imports = true
+
+# ── Pyright (second type checker, runs alongside mypy) ────────────────────────
+# We keep mypy as the strict primary; pyright is faster and gives the IDE
+# instant feedback. Both must pass in CI.
+[tool.pyright]
+include = ["src", "tests"]
+pythonVersion = "3.13"
+typeCheckingMode = "basic"
+reportMissingImports = "error"
+reportMissingTypeStubs = "warning"
+reportUnknownMemberType = "none"        # PyGithub stubs are incomplete
+reportUnknownVariableType = "none"
+reportUnknownArgumentType = "none"
+reportUnknownLambdaType = "none"
+reportUnknownParameterType = "none"
+useLibraryCodeForTypes = true
+strictListInference = true
+strictDictionaryInference = true
+strictSetInference = true
+
+# ── Pytest ────────────────────────────────────────────────────────────────────
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = [
+    "-ra",                              # show short summary for all non-pass results
+    "--strict-markers",                 # error on unknown markers
+    "--strict-config",
+    "--cov=src/ghrel",
+    "--cov-report=term-missing",
+    "--cov-report=html:.coverage_html",
+]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+    "integration: integration tests (mocked network)",
+    "e2e: end-to-end CLI tests with scripted input",
+    "slow: slow tests (skip with -m 'not slow')",
+]
+asyncio_mode = "auto"
+
+[tool.coverage.run]
+branch = true
+source = ["src/ghrel"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.:",
+]
+# 80% is a deliberate floor: pure-logic modules (selector/path_utils/verifier
+# /github_api/config) hit 95-100%; the remaining gap is defensive fallback
+# branches in state_machine and rarely-exercised verifier checksum-loader
+# paths. Tighten this number after the parallel-download path accumulates
+# real-world test coverage post-1.0.0.
+fail_under = 80

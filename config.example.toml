@@ -1,0 +1,27 @@
+# Example configuration for ghrel.
+#
+# Copy this file to `config.toml` next to the script (or in $XDG_CONFIG_HOME/ghrel/
+# on Linux/macOS, %APPDATA%/ghrel/ on Windows) and edit. `config.toml` is
+# gitignored to protect your token.
+
+# GitHub Personal Access Token. Used as Bearer auth for both the REST API and
+# (private-repo) asset downloads. Empty = unauthenticated (60 req/hour limit).
+# Priority: GITHUB_TOKEN env var > this field > unauthenticated.
+token = ""
+
+# Where downloaded assets are saved. Empty = ./downloads next to the script.
+# Accepts:
+#   relative                 "downloads"  "./foo"  "../shared"
+#   Windows absolute         "D:\\Releases"  "D:/Releases"
+#   UNC                      "\\\\fileserver\\releases"
+#   Tilde-prefixed           "~/Downloads"  "~\\Downloads"
+#   Env vars                 "%USERPROFILE%\\Downloads"  "$HOME/Downloads"
+#   WSL bridge               "/mnt/d/releases"  -> auto-converted to D:\releases
+output_dir = ""
+
+# Default for --include-pre-release. Override with the CLI flag or interactive prompt.
+include_pre_release = false
+
+# Maximum parallel downloads when multi-selecting (1 = serial, like the PS version).
+# Higher values speed up multi-asset downloads but consume more bandwidth/sockets.
+parallel = 16
